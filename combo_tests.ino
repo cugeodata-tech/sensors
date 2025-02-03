@@ -1,29 +1,17 @@
-/***************************************************************************
-  This is a library for the BMP3XX temperature & pressure sensor
-
-  Designed specifically to work with the Adafruit BMP388 Breakout
-  ----> http://www.adafruit.com/products/3966
-
-  These sensors use I2C or SPI to communicate, 2 or 4 pins are required
-  to interface.
-
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit and open-source hardware by purchasing products
-  from Adafruit!
-
-  Written by Limor Fried & Kevin Townsend for Adafruit Industries.
-  BSD license, all text above must be included in any redistribution
- ***************************************************************************/
-
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include "Adafruit_BMP3XX.h" // underwater temp
 #include <Adafruit_LPS35HW.h>  //pressure
 #include <stdio.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+// Combined sensor tests for all sensors currently connected to Arduino - BMP3 pressure/temp, Gravity TDS and turbidity, and analog temp sensor.
 
 Adafruit_LPS35HW sensor = Adafruit_LPS35HW();
 
+#define ONE_WIRE_BUS 11
 #define SEALEVELPRESSURE_HPA (1013.25)
 #define red 2  //LEDs to indicate depth
 #define green 3
@@ -36,6 +24,12 @@ int upper_limit = 5;   //Depth upper limit
 int bottom_limit = 9;  //Depth lower limit
 
 int depthOffset = 0;
+
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature sensors(&oneWire);
 
 Adafruit_BMP3XX bmp;
 
@@ -51,6 +45,7 @@ void setup() {
 
     Serial.println("Could not find a valid BMP3 sensor, check wiring!");
    while (1);
+  sensors.begin();
   
   }
 
@@ -123,6 +118,18 @@ void loop() {
   int sensorValue = analogRead(A1);// read the input on analog pin 0:
   float voltage = sensorValue * (5.0 / 1024.0); // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
   Serial.println(voltage); // print out the value you read:
+
+   // Call sensors.requestTemperatures() to issue a global temperature and Requests to all devices on the bus
+  sensors.requestTemperatures(); 
+
+  // Temp sensor
+
+  Serial.print("Celsius temperature: ");
+  // Why "byIndex"? You can have more than one IC on the same bus. 0 refers to the first IC on the wire
+  Serial.print(sensors.getTempCByIndex(0)); 
+  Serial.print(" - Fahrenheit temperature: ");
+  Serial.println(sensors.getTempFByIndex(0));
+  delay(1000);
 
   delay(2000);
 }
